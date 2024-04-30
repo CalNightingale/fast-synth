@@ -281,7 +281,7 @@ if __name__ == '__main__':
 
     if args.external:
         from src.config import data_filepath, grid_size
-        scene_dataset = utils.get_scene_dataset(data_filepath / args.dataset, "fastsynth_dims")
+        scene_dataset = utils.get_scene_dataset(data_filepath / args.dataset, "fastsynth_orient_dims")
         total_size = len(scene_dataset)
         train_size = int(0.8 * total_size)
         validation_size = total_size - train_size
@@ -366,7 +366,9 @@ if __name__ == '__main__':
 
             if not args.no_cuda:
                 input_img, t_loc, t_orient, t_dims = input_img.cuda(), t_loc.cuda(), t_orient.cuda(), t_dims.cuda()
+            print(f'Before inverse_xform_img():\n{input_img}')
             input_img = inverse_xform_img(input_img, t_loc, t_orient, img_size, no_cuda=args.no_cuda)
+            print(f'After:\n{input_img}')
             t_loc, t_orient = default_loc_orient(actual_batch_size, no_cuda=args.no_cuda)
 
             real_sdf = render_obb_sdf((img_size, img_size), t_dims, t_loc, t_orient)
