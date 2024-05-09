@@ -88,6 +88,29 @@ def get_scene_orient_dims_dataset(dataset_path : Path, indices) -> SceneDataset:
     scene_dataset = SceneDataset(scenes_path, metadata_path, "fastsynth_orient_dims", indices = indices)
     return scene_dataset
 
+# input_img: tensor, 8x13x256x256
+# output_mask: tensor, 8x256x256
+# returns combination where output_mask is appended; 8x14x256x256
+def create_viz_copy(input_img, output_mask):
+    # Check if input_img and output_mask are torch tensors
+    if not (isinstance(input_img, torch.Tensor) and isinstance(output_mask, torch.Tensor)):
+        raise TypeError("Both input_img and output_mask must be torch tensors.")
+
+    # Ensure the dimensions are as expected
+    if input_img.shape != (8, 13, 256, 256):
+        raise ValueError("input_img must have dimensions (8, 13, 256, 256).")
+    if output_mask.shape != (8, 256, 256):
+        raise ValueError("output_mask must have dimensions (8, 256, 256).")
+
+    # Add a channel dimension to output_mask
+    output_mask_expanded = output_mask.unsqueeze(1)  # Shape becomes (8, 1, 256, 256)
+
+    # Concatenate the expanded output_mask as a new channel to input_img
+    # The concatenation is along dimension 1 (channels)
+    viz_copy = torch.cat((input_img, output_mask_expanded), dim=1)
+
+    return viz_copy
+
 def save_input_img_as_png(input_img, img_index=0, save_path="output_img"):
     # Ensure input is a PyTorch tensor
     if not isinstance(input_img, torch.Tensor):
@@ -100,27 +123,29 @@ def save_input_img_as_png(input_img, img_index=0, save_path="output_img"):
     # Assuming input_img has shape [batch_size, channels, height, width]
     _, channels, height, width = input_img.shape
     
-    # Define colors for categories (assuming up to 20 categories)
-    colors = plt.cm.get_cmap('tab20', 10)  # Modify as necessary based on the number of categories
-
     # Extract room mask and wall mask
     room_mask = input_img[img_index, 1]
     wall_mask = input_img[img_index, 2]
 
     # Initialize an RGB image
     rgb_image = np.zeros((height, width, 3))
-    rgb_image[room_mask == 1] = [1.0, 1.0, 1.0]  # White for room
-    rgb_image[wall_mask == 0.5] = [0.0, 0.0, 0.0]  # Black for walls
+    rgb_image[room_mask == 1] = [0.9, 0.9, 0.9]  # Light gray for room
+    rgb_image[wall_mask == 0.5] = [0.25, 0.25, 0.25]  # Dark gray for walls
 
     # Handle category channels
     num_categories = channels - 6
+    colors = plt.cm.get_cmap('tab20', num_categories)
     for i in range(num_categories):
         category_mask = input_img[img_index, 6 + i] > 0
         color = colors(i)[:3]  # RGB components of the color
         rgb_image[category_mask] = color
+    
+    # Set output_mask to specific color (red)
+    output_mask = input_img[img_index, -1] > 0
+    rgb_image[output_mask] = [1,0,0]
 
     # Convert tensor to numpy for saving with matplotlib
-    plt.imsave(f'{save_path}.png', rgb_image)
+    plt.imsave(save_path, rgb_image)
 
 def memoize(func):
     """

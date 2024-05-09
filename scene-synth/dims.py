@@ -358,6 +358,13 @@ if __name__ == '__main__':
 
             if not args.no_cuda:
                 input_img, t_loc, t_orient, t_dims = input_img.cuda(), t_loc.cuda(), t_orient.cuda(), t_dims.cuda()
+            
+            # TODO remove before using; code for testing inverse_xform
+            viz_copy = utils.create_viz_copy(input_img, output_mask)
+            utils.save_input_img_as_png(viz_copy, save_path=f"../data/fastsynth_input_imgs/{i}_before.png")
+            viz_copy = inverse_xform_img(viz_copy, t_loc, t_orient, img_size, no_cuda=args.no_cuda)
+            utils.save_input_img_as_png(viz_copy, save_path=f"../data/fastsynth_input_imgs/{i}_after.png")
+            
             input_img = inverse_xform_img(input_img, t_loc, t_orient, img_size, no_cuda=args.no_cuda)
             t_loc, t_orient = default_loc_orient(actual_batch_size, no_cuda=args.no_cuda)
 
